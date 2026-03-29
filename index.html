@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Managerial Grid Assessment - Swan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .aspect-square { aspect-ratio: 1 / 1; }
+
+        /* Quadrant Background Colors */
+        .bg-cc { background-color: #f6ad55; }
+        .bg-tl { background-color: #ed8936; }
+        .bg-mr { background-color: #48bb78; }
+        .bg-im { background-color: #4fd1c5; }
+        .bg-au { background-color: #4299e1; }
+
+        /* L-shape clipping logic */
+        .clip-cc { clip-path: polygon(0% 0%, 50% 0%, 50% 33.3%, 33.3% 33.3%, 33.3% 50%, 0% 50%); }
+        .clip-tl { clip-path: polygon(50% 0%, 100% 0%, 100% 50%, 66.6% 50%, 66.6% 33.3%, 50% 33.3%); }
+        .clip-im { clip-path: polygon(0% 50%, 33.3% 50%, 33.3% 66.6%, 50% 66.6%, 50% 100%, 0% 100%); }
+        .clip-au { clip-path: polygon(50% 100%, 50% 66.6%, 66.6% 66.6%, 66.6% 50%, 100% 50%, 100% 100%); }
+        
+        .center-square { top: 33.33%; left: 33.33%; width: 33.33%; height: 33.33%; }
+
+        .vertical-label {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+        }
+
+        .style-label {
+            position: absolute;
+            font-weight: 900;
+            color: #1e293b;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            pointer-events: none;
+            font-size: 0.75rem;
+            z-index: 30;
+        }
+
+        /* --- FIXED CIRCULAR BUTTON STYLE --- */
+        .rating-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            border-radius: 9999px;
+            border: 2px solid #e2e8f0;
+            background-color: white;
+            font-weight: 800;
+            color: #475569;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .rating-btn::before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 50%;
+            margin-bottom: 2px;
+            transition: all 0.2s;
+        }
+
+        .rating-btn:hover {
+            border-color: #4f46e5;
+            background-color: #f5f3ff;
+            color: #4f46e5;
+            transform: translateY(-2px);
+        }
+
+        .rating-btn:hover::before {
+            border-color: #818cf8;
+            background-color: #e0e7ff;
+        }
+
+        .rating-btn:active {
+            transform: scale(0.9);
+            background-color: #4f46e5;
+            color: white;
+        }
+
+        .scale-label {
+            font-size: 10px;
+            font-weight: 900;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+@media print {
+    body { background: white; padding: 0; }
+    #start-screen, #quiz-container, button { display: none !important; }
+    #results-container { display: block !important; }
+    .shadow-xl { shadow: none !important; border: 1px solid #eee; }
+    .bg-slate-100 { background-color: white !important; }
+}
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col items-center p-4 md:p-8">
+
+    <div class="w-full max-w-4xl">
+        
+        <section id="start-screen" class="bg-white rounded-3xl shadow-xl p-10 text-center mt-10 border border-slate-200">
+            <h1 class="text-4xl font-black text-slate-900 mb-6">Managerial Grid Assessment</h1>
+            <p class="text-slate-600 leading-relaxed max-w-2xl mx-auto mb-8 text-lg">
+                This survey consists of statements about leadership behavior. Read each one carefully and choose the extent to which it applies to you.
+            </p>
+            <button onclick="startAssessment()" class="bg-slate-900 text-white px-12 py-4 rounded-2xl font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95">
+                Start Assessment
+            </button>
+        </section>
+
+        <section id="quiz-container" class="hidden bg-white rounded-3xl shadow-xl p-8 mt-4 border border-slate-200">
+            <div id="quiz-header" class="mb-10 text-center">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-xs font-black text-indigo-600 uppercase tracking-widest">Leadership Behavior</span>
+                    <span id="q-count" class="text-xs font-bold text-slate-400">Question 1 of 18</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-indigo-600 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="quiz-body" class="text-center">
+                <h2 id="question-text" class="text-xl md:text-2xl font-medium text-slate-700 min-h-[100px] mb-12 px-4"></h2>
+                
+                <div class="flex flex-col items-center space-y-6">
+                    <div class="flex justify-between w-full max-w-md px-2">
+                        <span class="scale-label">Never</span>
+                        <span class="scale-label text-slate-300">Sometimes</span>
+                        <span class="scale-label">Always</span>
+                    </div>
+                    
+                    <div class="flex gap-2 md:gap-4">
+                        <button onclick="handleAnswer(0)" class="rating-btn">0</button>
+                        <button onclick="handleAnswer(1)" class="rating-btn">1</button>
+                        <button onclick="handleAnswer(2)" class="rating-btn">2</button>
+                        <button onclick="handleAnswer(3)" class="rating-btn">3</button>
+                        <button onclick="handleAnswer(4)" class="rating-btn">4</button>
+                        <button onclick="handleAnswer(5)" class="rating-btn">5</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="results-container" class="hidden animate-in fade-in duration-1000">
+<div class="lg:col-span-8 flex flex-row items-stretch gap-4 md:gap-6 bg-white p-6 md:p-10 rounded-3xl shadow-xl border border-slate-200">
+    
+    <div class="flex flex-col justify-between py-[2px] mb-1"> 
+        <span class="text-[10px] font-bold text-slate-400 leading-none">High (9)</span>
+        <div class="vertical-label font-black text-slate-700 tracking-[0.3em] text-xs md:text-sm whitespace-nowrap">CONCERN FOR PEOPLE</div>
+        <span class="text-[10px] font-bold text-slate-400 leading-none">(1) Low</span>
+    </div>
+
+    <div class="flex-grow flex flex-col">
+        <div id="grid-surface" class="relative w-full aspect-square border-l-4 border-b-4 border-slate-900 bg-white shadow-inner overflow-hidden rounded-sm">
+            
+            <div class="style-label top-6 left-6">Country Club</div>
+            <div class="style-label top-6 right-6 text-right">Team Leader</div>
+            <div class="style-label bottom-6 left-6">Impoverished</div>
+            <div class="style-label bottom-6 right-6 text-right">Authoritarian</div>
+            <div class="absolute center-square flex items-center justify-center z-30 pointer-events-none">
+                <span class="style-label text-center">Middle-of-the-Road</span>
+            </div>
+
+            <div id="zone-cc" class="absolute inset-0 bg-cc clip-cc opacity-5"></div>
+            <div id="zone-tl" class="absolute inset-0 bg-tl clip-tl opacity-5"></div>
+            <div id="zone-im" class="absolute inset-0 bg-im clip-im opacity-5"></div>
+            <div id="zone-au" class="absolute inset-0 bg-au clip-au opacity-5"></div>
+            <div id="zone-mr" class="absolute center-square bg-mr border-2 border-white/50 opacity-5"></div>
+
+            <div id="result-dot" class="absolute w-6 h-6 bg-red-600 border-4 border-white rounded-full shadow-lg z-50 transition-all duration-1000 -translate-x-1/2 translate-y-1/2 group" style="bottom: 0; left: 0;">
+                <div class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-slate-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap font-bold shadow-xl">
+                    Task: <span id="val-x">1</span> | People: <span id="val-y">1</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <div class="w-full flex justify-between text-[10px] font-bold text-slate-400 px-1">
+                <span class="leading-none">(1) Low</span>
+                <span class="leading-none">High (9)</span>
+            </div>
+            <div class="text-center font-black text-slate-700 tracking-[0.3em] text-xs md:text-sm mt-3 uppercase">Concern for Task / Results</div>
+        </div>
+    </div>
+</div>
+
+        <div class="lg:col-span-4 space-y-4">
+    <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-200">
+        <h3 class="text-xs font-black text-indigo-600 uppercase tracking-widest mb-2">Dominant Style</h3>
+        <h2 id="final-style-name" class="text-3xl font-black text-slate-900 leading-tight mb-4">--</h2>
+        
+        <div class="mb-6">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Associate</label>
+            <p id="user-name-display" class="text-lg font-bold text-slate-800">--</p>
+        </div>
+
+        <p id="final-style-desc" class="text-slate-600 text-sm leading-relaxed mb-6"></p>
+        
+        <div class="space-y-3 pt-6 border-t border-slate-100">
+    <button onclick="window.print()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 uppercase text-sm tracking-widest no-print">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" />
+        </svg>
+        Download PDF Result
+    </button>
+    <p class="text-[10px] text-center text-slate-400 font-medium no-print">Verification ID: Swan-Grid-Verified</p>
+</div>
+    </div>
+</div>
+</section>
+    </div>
+
+    <script>
+        const questions = [
+            { id: 1, text: "I encourage my team to participate when it comes decision-making time and I try to implement their ideas and suggestions.", cat: "P" },
+            { id: 2, text: "Nothing is more important than accomplishing a goal or task.", cat: "T" },
+            { id: 3, text: "I closely monitor the schedule to ensure a task or project will be completed in time.", cat: "T" },
+            { id: 4, text: "I enjoy coaching people on new tasks and procedures.", cat: "P" },
+            { id: 5, text: "The more challenging a task is, the more I enjoy it.", cat: "T" },
+            { id: 6, text: "I encourage my employees to be creative about their job.", cat: "P" },
+            { id: 7, text: "When seeing a complex task through to completion, I ensure that every detail is accounted for.", cat: "T" },
+            { id: 8, text: "I find it easy to carry out several complicated tasks at the same time.", cat: "T" },
+            { id: 9, text: "I enjoy reading articles, books, and journals about training and leadership.", cat: "P" },
+            { id: 10, text: "When correcting mistakes, I do not worry about jeopardizing relationships.", cat: "T" },
+            { id: 11, text: "I manage my time very efficiently.", cat: "T" },
+            { id: 12, text: "I enjoy explaining the details of a complex task to my employees.", cat: "P" },
+            { id: 13, text: "Breaking large projects into small tasks is second nature to me.", cat: "T" },
+            { id: 14, text: "Nothing is more important than building a great team.", cat: "P" },
+            { id: 15, text: "I enjoy analyzing problems.", cat: "T" },
+            { id: 16, text: "I honor other people's boundaries.", cat: "P" },
+            { id: 17, text: "Counseling my employees to improve their performance is second nature to me.", cat: "P" },
+            { id: 18, text: "I enjoy implementing new procedures in my profession.", cat: "T" }
+        ];
+
+        const styleDescriptions = {
+            "Team Leader": "High task/High relationship. Fosters a team environment where all reach full potential.",
+            "Country Club": "Low task/High relationship. Focuses on team comfort and security to maintain morale.",
+            "Authoritarian": "Task-oriented. Expects obedience without question. Focuses on results over human needs.",
+            "Impoverished": "Low task/Low relationship. A 'delegate and disappear' style with minimal commitment.",
+            "Middle-of-the-Road": "Status quo management. Aims to balance work requirements and employee morale."
+        };
+
+        let currentIdx = 0;
+        let scoreP = 0;
+        let scoreT = 0;
+
+        function startAssessment() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('quiz-container').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = questions[currentIdx];
+            document.getElementById('question-text').innerText = q.text;
+            document.getElementById('q-count').innerText = `Question ${currentIdx + 1} of ${questions.length}`;
+            document.getElementById('progress-bar').style.width = `${((currentIdx) / questions.length) * 100}%`;
+        }
+
+        function handleAnswer(val) {
+    const q = questions[currentIdx];
+    if (q.cat === "P") scoreP += val;
+    else scoreT += val;
+
+    // Check if it's the last question
+    if (currentIdx === questions.length - 1) {
+        showFinalSubmit();
+    } else {
+        currentIdx++;
+        renderQuestion();
+    }
+}
+
+function showFinalSubmit() {
+    // Hide the rating buttons
+    document.querySelector('.flex.flex-col.items-center.space-y-6').classList.add('hidden');
+    // Change question text to a prompt
+    document.getElementById('question-text').innerHTML = `
+        <div class="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
+            <p class="text-sm font-bold text-indigo-600 uppercase mb-2">Final Step</p>
+            <p class="text-slate-700 font-medium mb-6">Assessment complete. Please enter your name to view and save your leadership profile.</p>
+            <input type="text" id="final-user-name" placeholder="Full Name" class="w-full max-w-sm bg-white border-2 border-slate-200 p-4 rounded-xl outline-none focus:border-indigo-600 transition-all font-bold text-center">
+            <button onclick="processFinalSubmission()" class="mt-6 w-full max-w-sm bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-black transition-all uppercase tracking-widest">
+                Submit & View Results
+            </button>
+        </div>
+    `;
+}
+
+async function processFinalSubmission() {
+    const name = document.getElementById('final-user-name').value;
+    if (!name) {
+        alert("Please enter your name before submitting.");
+        return;
+    }
+
+    // Calculating 1-9 scale based on 9 questions per category (max 45 points)
+    const taskVal = (1 + (scoreT * 8 / 45)).toFixed(1);
+    const peopleVal = (1 + (scoreP * 8 / 45)).toFixed(1);
+    
+    let style = "";
+    if (taskVal >= 4 && taskVal <= 6 && peopleVal >= 4 && peopleVal <= 6) style = "Middle-of-the-Road";
+    else if (taskVal >= 5 && peopleVal >= 5) style = "Team Leader";
+    else if (taskVal >= 5 && peopleVal < 5) style = "Authoritarian";
+    else if (taskVal < 5 && peopleVal >= 5) style = "Country Club";
+    else style = "Impoverished";
+
+    const btn = document.querySelector('#question-text button');
+    btn.innerText = "Saving to Ecosystem...";
+    btn.disabled = true;
+
+    const data = {
+        name: name,
+        task: taskVal,
+        people: peopleVal,
+        style: style
+    };
+
+    try {
+        // I added "/exec" to the end of your ID
+        await fetch('https://script.google.com/macros/s/AKfycbywVQBLfuejmRkEB4xy6egbmUdzsJGro_PoaejEw_ZwXqeFLHRu3KKgViyI5KRnYzOG/exec', {
+            method: 'POST',
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        // Move to results after a tiny delay to ensure the fetch fired
+        setTimeout(() => {
+            document.getElementById('user-name-display').innerText = name;
+            showResults();
+        }, 500);
+        
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('user-name-display').innerText = name;
+        showResults();
+    }
+}
+        function showResults() {
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('results-container').classList.remove('hidden');
+
+            const finalP = Math.max(1, (scoreP * 0.2).toFixed(1));
+            const finalT = Math.max(1, (scoreT * 0.2).toFixed(1));
+
+            updateGridDisplay(finalT, finalP);
+        }
+
+        function updateGridDisplay(task, people) {
+    // Ensure scores stay within 1-9 bounds
+    const taskFixed = Math.min(9, Math.max(1, task));
+    const peopleFixed = Math.min(9, Math.max(1, people));
+
+    const x = ((taskFixed - 1) / 8) * 100;
+    const y = ((peopleFixed - 1) / 8) * 100;
+
+    const dot = document.getElementById('result-dot');
+    if(dot) {
+        dot.style.left = `${x}%`;
+        dot.style.bottom = `${y}%`;
+    }
+
+    document.getElementById('val-x').innerText = taskFixed;
+    document.getElementById('val-y').innerText = peopleFixed;
+
+    const zones = ['zone-cc', 'zone-tl', 'zone-im', 'zone-au', 'zone-mr'];
+    zones.forEach(z => {
+        const el = document.getElementById(z);
+        if(el) el.style.opacity = "0.05";
+    });
+
+    let style = "";
+    if (taskFixed >= 4 && taskFixed <= 6 && peopleFixed >= 4 && peopleFixed <= 6) {
+        style = "Middle-of-the-Road";
+        document.getElementById('zone-mr').style.opacity = "1";
+    } else if (taskFixed >= 5 && peopleFixed >= 5) {
+        style = "Team Leader";
+        document.getElementById('zone-tl').style.opacity = "1";
+    } else if (taskFixed >= 5 && peopleFixed < 5) {
+        style = "Authoritarian";
+        document.getElementById('zone-au').style.opacity = "1";
+    } else if (taskFixed < 5 && peopleFixed >= 5) {
+        style = "Country Club";
+        document.getElementById('zone-cc').style.opacity = "1";
+    } else {
+        style = "Impoverished";
+        document.getElementById('zone-im').style.opacity = "1";
+    }
+
+    document.getElementById('final-style-name').innerText = style;
+    document.getElementById('final-style-desc').innerText = styleDescriptions[style] || "";
+}
+function updateTooltip(e) {
+    const rect = document.getElementById('grid-surface').getBoundingClientRect();
+    const tooltip = document.getElementById('hover-tooltip');
+    
+    // Calculate 1-9 scale based on mouse position
+    const xPercent = (e.clientX - rect.left) / rect.width;
+    const yPercent = 1 - ((e.clientY - rect.top) / rect.height);
+    
+    const xVal = (1 + (xPercent * 8)).toFixed(1);
+    const yVal = (1 + (yPercent * 8)).toFixed(1);
+
+    // Position tooltip slightly offset from cursor
+    tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
+    tooltip.style.top = (e.clientY - rect.top - 25) + 'px';
+    tooltip.style.display = 'block';
+    tooltip.innerHTML = `Task: ${xVal} | People: ${yVal}`;
+}
+
+function hideTooltip() {
+    document.getElementById('hover-tooltip').style.display = 'none';
+}
+
+</script>
+</body>
+</html>
