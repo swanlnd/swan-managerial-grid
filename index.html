@@ -99,10 +99,21 @@
     .shadow-xl { shadow: none !important; border: 1px solid #eee; }
     .bg-slate-100 { background-color: white !important; }
 }
+        @media print {
+    /* Ensure the logo looks crisp on the PDF */
+    #branding-header { margin-bottom: 20px !important; }
+    #main-logo { width: 80px !important; }
+    #main-title { font-size: 16px !important; }
+    .no-print { display: none !important; }
+}
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center p-4 md:p-8">
-
+    <div id="branding-header" class="flex flex-col items-center mb-8 transition-all duration-500">
+        <img src="https://lh3.googleusercontent.com/u/0/d/1_5CrGm8Fl2LeX2-XHM3Fpg_sm8c-esex" alt="Swan Logo" id="main-logo" class="w-32 h-auto mb-2 transition-all duration-500">
+        <h1 id="main-title" class="text-2xl font-black text-slate-900 uppercase tracking-[0.2em] transition-all duration-500">Swan Intelligence</h1>
+        <div id="sub-title" class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Leadership Assessment Ecosystem</div>
+    </div>
     <div class="w-full max-w-4xl">
         
         <section id="start-screen" class="bg-white rounded-3xl shadow-xl p-10 text-center mt-10 border border-slate-200">
@@ -252,11 +263,17 @@
         let scoreT = 0;
 
         function startAssessment() {
-            document.getElementById('start-screen').classList.add('hidden');
-            document.getElementById('quiz-container').classList.remove('hidden');
-            renderQuestion();
-        }
-
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('quiz-container').classList.remove('hidden');
+        
+        // Shrink branding by 50%
+        document.getElementById('main-logo').classList.replace('w-32', 'w-16');
+        document.getElementById('main-title').classList.replace('text-2xl', 'text-sm');
+        document.getElementById('branding-header').classList.remove('mb-8');
+        document.getElementById('branding-header').classList.add('mb-4');
+    
+        renderQuestion();
+        }    
         function renderQuestion() {
             const q = questions[currentIdx];
             document.getElementById('question-text').innerText = q.text;
