@@ -121,6 +121,15 @@
     /* Hide the interactive hover tooltip during print */
     .group-hover\:block { display: none !important; }
 }
+        @media print {
+    .no-print-break {
+        break-inside: avoid;
+    }
+    #answers-review-list {
+        display: grid !important;
+        grid-template-cols: 1fr 1fr !important; /* Keep two columns in the PDF */
+    }
+}
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center p-4 md:p-8">
@@ -175,13 +184,13 @@
         </section>
 
         <section id="results-container" class="hidden animate-in fade-in duration-1000">
-<div class="lg:col-span-8 flex flex-row items-stretch gap-4 md:gap-6 bg-white p-6 md:p-10 rounded-3xl shadow-xl border border-slate-200">
+            <div class="lg:col-span-8 flex flex-row items-stretch gap-4 md:gap-6 bg-white p-6 md:p-10 rounded-3xl shadow-xl border border-slate-200">
     
-    <div class="flex flex-col justify-between py-[2px] mb-1"> 
-        <span class="text-[10px] font-bold text-slate-400 leading-none">High (9)</span>
-        <div class="vertical-label font-black text-slate-700 tracking-[0.3em] text-xs md:text-sm whitespace-nowrap">CONCERN FOR PEOPLE</div>
-        <span class="text-[10px] font-bold text-slate-400 leading-none">(1) Low</span>
-    </div>
+                <div class="flex flex-col justify-between py-[2px] mb-1"> 
+                    <span class="text-[10px] font-bold text-slate-400 leading-none">High (9)</span>
+                    <div class="vertical-label font-black text-slate-700 tracking-[0.3em] text-xs md:text-sm whitespace-nowrap">CONCERN FOR PEOPLE</div>
+                    <span class="text-[10px] font-bold text-slate-400 leading-none">(1) Low</span>
+                </div>
 
     <div class="flex-grow flex flex-col">
         <div id="grid-surface" class="relative w-full aspect-square border-l-4 border-b-4 border-slate-900 bg-white shadow-inner overflow-hidden rounded-sm">
@@ -222,6 +231,11 @@
 
         <div class="lg:col-span-4 space-y-4">
     <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-200">
+        <div class="mt-8 bg-white p-6 rounded-3xl border border-slate-200 no-print-break">
+    <h3 class="text-xs font-black text-indigo-600 uppercase tracking-widest mb-4">Detailed Response Review</h3>
+    <div id="answers-review-list" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-[11px] text-slate-600">
+        </div>
+</div>
         <h3 class="text-xs font-black text-indigo-600 uppercase tracking-widest mb-2">Dominant Style</h3>
         <h2 id="final-style-name" class="text-3xl font-black text-slate-900 leading-tight mb-4">--</h2>
         
@@ -247,6 +261,7 @@
     </div>
 
     <script>
+        let userAnswers = []; // Store 0-5 values here
         const questions = [
             { id: 1, text: "I encourage my team to participate when it comes decision-making time and I try to implement their ideas and suggestions.", cat: "P" },
             { id: 2, text: "Nothing is more important than accomplishing a goal or task.", cat: "T" },
@@ -301,10 +316,11 @@
 
         function handleAnswer(val) {
     const q = questions[currentIdx];
+    userAnswers.push({ text: q.text, score: val }); // Save the answer
+    
     if (q.cat === "P") scoreP += val;
     else scoreT += val;
 
-    // Check if it's the last question
     if (currentIdx === questions.length - 1) {
         showFinalSubmit();
     } else {
@@ -379,15 +395,23 @@ async function processFinalSubmission() {
         showResults();
     }
 }
-        function showResults() {
-            document.getElementById('quiz-container').classList.add('hidden');
-            document.getElementById('results-container').classList.remove('hidden');
+       function showResults() {
+    document.getElementById('quiz-container').classList.add('hidden');
+    document.getElementById('results-container').classList.remove('hidden');
 
-            const finalP = Math.max(1, (scoreP * 0.2).toFixed(1));
-            const finalT = Math.max(1, (scoreT * 0.2).toFixed(1));
+    // Inject the answers into the review list
+    const listContainer = document.getElementById('answers-review-list');
+    listContainer.innerHTML = userAnswers.map((ans, idx) => `
+        <div class="flex justify-between py-1 border-b border-slate-50">
+            <span class="pr-4"><span class="font-bold text-slate-400">${idx + 1}.</span> ${ans.text}</span>
+            <span class="font-black text-indigo-600 px-2 bg-indigo-50 rounded">${ans.score}</span>
+        </div>
+    `).join('');
 
-            updateGridDisplay(finalT, finalP);
-        }
+    const finalP = Math.max(1, (scoreP * 0.2).toFixed(1));
+    const finalT = Math.max(1, (scoreT * 0.2).toFixed(1));
+    updateGridDisplay(finalT, finalP);
+}
 
         function updateGridDisplay(task, people) {
     // Ensure scores stay within 1-9 bounds
