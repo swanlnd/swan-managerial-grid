@@ -345,7 +345,7 @@ function showFinalSubmit() {
     `;
 }
 
-async function processFinalSubmission() {
+async function processFinalSubmission(retryCount=0) {
     const name = document.getElementById('final-user-name').value;
     if (!name) {
         alert("Please enter your name before submitting.");
